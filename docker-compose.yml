@@ -1,0 +1,7 @@
+version: "3"
+services:
+  amazoncorrettospring:
+    build: .
+    image: amazoncorrettospring
+    ports:
+      - "8080:8080"
