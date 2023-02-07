@@ -1,49 +1,38 @@
 pipeline {
-  agent any
-  options { 
-	ansiColor("xterm")
-	timestamps() 
-  }
-  	
-    stages {
-	stage('Packaging') {
-            steps {
-                sh "./mvnw package -q"
-                script {
-                    def startTime = new Date().format("dd/MM/yyyy HH:mm:ss")
-                    echo "\033[32mPackage finished at: ${startTime}\033[0m"
-                }
-		junit 'test.xml'
-
-            }
-        }
-
-	stage('Build') {
-            steps {
-                sh "docker-compose build"
-            	script {
-                    	def startTime = new Date().format("dd/MM/yyyy HH:mm:ss")
-                    	echo "\033[32mBuild finished at: ${startTime}\033[0m"
-           	}
-	    }		
+    agent any
+    options { timestamps() 
+	ansiColor('xterm')	
 	}
-        stage('Deploy') {
-            steps {
-                sh "docker-compose up -d"
-		script {
-                    	def startTime = new Date().format("dd/MM/yyyy HH:mm:ss")
-                    	echo "\033[32mUp finished at: ${startTime}\033[0m"
-       		}            
-
+    stages {
+            stage('Comp') {
+		steps {
+                        sh './mvnw package'
+                }
             }
-       }
-    }
-    post {
-        always {
-           	junit '**/target/*.xml'
+            stage('Tests01') {
+		steps {
+                        junit 'target/surefire-reports/TEST-*.xml'
+                }
+            }
+            stage('Docker config') {
+		steps {
+                        sh 'docker-compose config'
+                }
+            }
+            stage('build') {
+                steps {
+                       sh 'docker-compose build'
+                    }
+                
+            }
+	        stage('Up') {
+                steps {
+                       sh '''docker-compose up -d
+                       docker-compose logs -t --tail=10'''
+                       
+		       echo '\033[1;32m[Success] \033[0m'
+                }
         }
-        failure {
-           	echo "\033[33mFAILED\033[0m"
-        }
+        
     }
 }
