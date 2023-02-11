@@ -1,38 +1,39 @@
 pipeline {
     agent any
-    options { timestamps() 
-	ansiColor('xterm')	
-	}
+    options { 
+        timestamps()
+        ansiColor('xterm')     
+    }
     stages {
-            stage('Comp') {
-		steps {
-                        sh './mvnw package'
-                }
+        stage('Compile and Package') {
+            steps {
+                sh './mvnw package'
             }
-            stage('Tests01') {
-		steps {
-                        junit 'target/surefire-reports/TEST-*.xml'
-                }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }       
             }
-            stage('Docker config') {
-		steps {
-                        sh 'docker-compose config'
-                }
-            }
-            stage('build') {
-                steps {
-                       sh 'docker-compose build'
-                    }
-                
-            }
-	        stage('Up') {
-                steps {
-                       sh '''docker-compose up -d
-                       docker-compose logs -t --tail=10'''
-                       
-		       echo '\033[1;32m[Success] \033[0m'
-                }
         }
-        
+        stage('Validate Docker Compose Configuration') {
+            steps {
+                sh 'docker-compose config'
+            }
+        }
+        stage('Build Docker Images') {
+            steps {
+                sh 'docker-compose build'
+            }
+        }
+        stage('Start Docker Containers') {
+            steps {
+                sh '''
+                docker-compose up -d
+                docker-compose logs -t --tail=10
+                '''
+                echo '\033[1;32m[Success] Containers started successfully\033[0m'
+            }
+        }
     }
 }
+
